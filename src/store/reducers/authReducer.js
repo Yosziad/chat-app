@@ -1,17 +1,13 @@
-import React, { useState } from 'react';
-
-
-function AuthReducer(action) {
-  const [token] = useState(null);
-  const [user] = useState({});
+const defaultState = {
+  token: null,
+  user:{},
+}
+const auth = (state = defaultState, action) => {
 
   switch(action.type){
     default:
-      return [token, user]
+      return state
   }
-
-
-
 }
 
-export default AuthReducer;
+export default auth;

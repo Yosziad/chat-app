@@ -1,9 +1,15 @@
 import React from 'react';
 import logo from './logo.svg';
 import {BrowserRouter, Switch, Route, Link} from 'react-router-dom'
+import { useDispatch, useSelector } from "react-redux";
 
 
-function App() {
+
+const App = () => {
+
+  const auth = useSelector(state => ({...state.auth}));
+  const dispatch = useDispatch();
+
   return (
     <div className="App">
 
