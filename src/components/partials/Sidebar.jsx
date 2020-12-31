@@ -11,11 +11,35 @@ function Sidebar() {
 
   const onSearchChange = useCallback((e) => setSearch(e.target.value), []);
 
+  const onClick = useCallback(() =>{
+    chat.socket.send(JSON.stringify({
+      type: 'SEARCH',
+      data: search
+    }))
+  },[chat.socket, search])
+
 	return (
   <div className="sidebar">
   <div className='search-container'>
-    <input className='form-control' placeholder='serch....' value={search} onChange={onSearchChange} />
+    <input className='form-control' placeholder='Search....' value={search} onChange={onSearchChange} />
+    <button className='btn btn-primary' onClick={onClick} >Search</button>
   </div>
+  {search ?
+    <ul className='thread-list'>
+      <label>Results</label>
+      {chat.users.map((user, ui)=> {
+        return (
+          <li key={ui}>
+        <Link to='/thread'>
+          <i className='zmdi zmdi-account-circle'/>
+          <h5>{user.name}</h5>
+          <p>{user.email}</p>
+        </Link>
+      </li>
+        )
+      })}
+    </ul>
+  :
     <ul className='thread-list'>
       <label>Messages</label>
       <li>
@@ -26,6 +50,7 @@ function Sidebar() {
         </Link>
       </li>
     </ul>
+  }
   </div>
   );
 }
