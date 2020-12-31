@@ -1,55 +1,74 @@
-import React from 'react';
-import {BrowserRouter, Switch, Route, Link} from 'react-router-dom'
+import React from "react";
+import { BrowserRouter, Switch, Route, Link, Redirect } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import setupSocket from './store/actions/chatActions';
-import  Auth from './components/pages/Auth';
-
-
+import setupSocket from "./store/actions/chatActions";
+import * as AuthActions from "./store/actions/authActions";
+import Messenger from "./components/pages/Messenger";
+import useOnce from "./hooks/useOnce";
+import Auth from "./components/pages/Auth";
+import "bootstrap/dist/css/bootstrap.min.css";
+import "./assets/css/swag.css";
 
 const App = (props) => {
+	const auth = useSelector((state) => ({ ...state.auth }));
+	const chat = useSelector((state) => ({ ...state.chat }));
+	const dispatch = useDispatch();
 
-  const auth = useSelector(state => ({...state.auth}));
-  const chat = useSelector(state => ({...state.chat}));
-  const dispatch = useDispatch();
-  dispatch(setupSocket())
-  
+	useOnce(() => {
+		dispatch(setupSocket());
+	});
 
-  return (
-    <div className="App">
-      <button onClick={e => {
-        e.preventDefault();
-        if(chat.socket){
-          chat.socket.send(JSON.stringify({
-            type: 'Hello',
-            data: 'World'
-          }))
-        }
-      }}>Send Message</button>
-      <BrowserRouter>
-        <Switch>
+	return (
+		<div className="App">
+			<button onClick={() => dispatch(AuthActions.logout())}>Log Out</button>
+			<BrowserRouter>
+				<Switch>
+					<Route
+						path="/login"
+						render={(props) => {
+							if (auth.token) {
+								return <Redirect to="/" />;
+							} else {
+								return <Auth />;
+							}
+						}}
+					/>
+					<Route
+						path="/signup"
+						render={(props) => {
+							if (auth.token) {
+								return <Redirect to="/" />;
+							} else {
+								return <Auth />;
+							}
+						}}
+					/>
 
-          <Route 
-            path='/login'
-            component={Auth}
-          />
-          <Route 
-            path='/signup'
-            component={Auth}
-          />
+					<Route
+						path="/"
+						render={(props) => {
+							if (!auth.token) {
+								return <Redirect to="/login" />;
+							} else {
+								return <Messenger />;
+							}
+						}}
+					/>
 
-          <Route 
-            path='/'
-            render={props => {
-              return (
-                <h1>Root</h1>
-              )
-            }}
-          />
-
-        </Switch>
-      </BrowserRouter>
-    </div>
-  );
-}
+					<Route
+						path="/:threadId"
+						render={(props) => {
+							if (!auth.token) {
+								return <Redirect to="/login" />;
+							} else {
+								return <Messenger />;
+							}
+						}}
+					/>
+				</Switch>
+			</BrowserRouter>
+		</div>
+	);
+};
 
 export default App;
