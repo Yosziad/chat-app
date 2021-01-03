@@ -43,6 +43,7 @@ ws.on('connection', (ws) => {
   ws.on('message', (message) => {
     console.log('Got message', JSON.parse(message));
     let parsed = JSON.parse(message);
+    console.log(parsed.data);
     if (parsed) {
       switch (parsed.type) {
         case 'SIGNUP':
@@ -79,6 +80,35 @@ ws.on('connection', (ws) => {
                 }));
               }
             });
+          break;
+
+        case 'FIND_THREAD':
+          models.Thread.findOne({where: {
+            and: [
+              {users: {like: parsed.data[0]}},
+              {users: {like: parsed.data[1]}},
+            ],
+          }}, (err, thread)=> {
+            if (!err && thread) {
+              ws.send(JSON.stringify({
+                type: 'ADD_THREAD',
+                data: thread,
+              }));
+            } else {
+              models.Thread.create({
+                lastUpdate: new Date(),
+                users: parsed.data,
+              }, (err2, thread) => {
+                clients.filter(u => thread.users.indexOf(u.id.toString()) > -1)
+                .map(client => {
+                  client.ws.send(JSON.stringify({
+                    type: 'ADD_THREAD',
+                    data: thread,
+                  }));
+                });
+              });
+            }
+          });
           break;
         default:
           console.log('Nothing to see here.');
