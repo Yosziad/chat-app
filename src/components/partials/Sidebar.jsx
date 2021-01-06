@@ -66,7 +66,7 @@ function Sidebar() {
 					<label>Messages</label>
           {chat.threads.map((thread, threadIndex) => {
             return (
-              <li>
+              <li key={threadIndex}>
 						<Link to={`/${thread.id}`}>
 							<i className="zmdi zmdi-account-circle" />
 							<h5>{thread.id}</h5>
