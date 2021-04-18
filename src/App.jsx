@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { BrowserRouter, Switch, Route, Link, Redirect } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import setupSocket from "./store/actions/chatActions";
@@ -7,7 +7,9 @@ import Messenger from "./components/pages/Messenger";
 import useOnce from "./hooks/useOnce";
 import Auth from "./components/pages/Auth";
 import "bootstrap/dist/css/bootstrap.min.css";
+import "bootstrap/dist/js/bootstrap.min.js";
 import "./assets/css/swag.css";
+require('bootstrap');
 
 const App = (props) => {
 	const auth = useSelector((state) => ({ ...state.auth }));
@@ -15,8 +17,9 @@ const App = (props) => {
 	const dispatch = useDispatch();
 
 	useOnce(() => {
-		dispatch(setupSocket());
+		dispatch(setupSocket(auth.token, auth.user.id));
 	});
+
 
 	return (
 		<div className="App">

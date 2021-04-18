@@ -5,6 +5,25 @@ const ws = new WebSocket.Server({port: 8080});
 const clients = [];
 
 ws.on('connection', (ws) => {
+  function getInitialThreads(userId) {
+    models.Thread.find({where: {}, include: 'Messages'}, (err, threads) => {
+      if (!err && threads) {
+        threads.map((thread, i) => {
+          models.User.find({where: {id: {inq: thread.users}}},
+            (err3, users) => {
+              thread.profiles = users;
+              if (i === threads.length - 1) {
+                ws.send(JSON.stringify({
+                  type: 'INITIAL_THREADS',
+                  data: threads,
+                }));
+              }
+            });
+        });
+      }
+    });
+  };
+
   function login(email, password) {
     models.User.login({email, password}, (err, result) => {
       if (err) {
@@ -21,13 +40,14 @@ ws.on('connection', (ws) => {
               errors: err2,
             }));
           } else {
+            ws.uid = user.id + new Date().getTime().toString();
             const userObject = {
               id: user.id,
               email: user.email,
               ws: ws,
             };
             clients.push(userObject);
-            console.log('Current Clients', clients);
+            getInitialThreads(user.id);
             ws.send(JSON.stringify({
               type: 'LOGGEDIN',
               data: {
@@ -40,6 +60,20 @@ ws.on('connection', (ws) => {
       }
     });
   }
+
+  ws.on('close', (req) => {
+    console.log('Request close', req);
+    let clientIndex = -1;
+    clients.map((c, i) => {
+      if (c.ws._closeCode === req) {
+        clientIndex = i;
+      }
+    });
+    if (clientIndex > -1) {
+      clients.splice(clientIndex, 1);
+    }
+  });
+
   ws.on('message', (message) => {
     console.log('Got message', JSON.parse(message));
     let parsed = JSON.parse(message);
@@ -61,6 +95,20 @@ ws.on('connection', (ws) => {
               }, (profileError, profile) => {
 
               });
+            }
+          });
+          break;
+        case 'CONNECT_WITH_TOKEN':
+          models.User.findById(parsed.data.userId, (err2, user) => {
+            if (!err2 && user) {
+              ws.uid = user.id + new Date().getTime().toString();
+              const userObject = {
+                id: user.id,
+                email: user.email,
+                ws: ws,
+              };
+              clients.push(userObject);
+              getInitialThreads(user.id);
             }
           });
           break;
@@ -106,6 +154,44 @@ ws.on('connection', (ws) => {
                     data: thread,
                   }));
                 });
+              });
+            }
+          });
+          break;
+
+        case 'THREAD_LOAD':
+          models.Message.find({where: {
+            threadId: parsed.data.threadId,
+          },
+            order: 'date DESC',
+            skip: parsed.data.skip,
+            limit: 10},
+        (err2, messages) => {
+          if (!err2 && messages) {
+            ws.send(JSON.stringify({
+              type: 'GOT_MESSAGES',
+              threadId: parsed.data.threadId,
+              messages: messages,
+            }));
+          }
+        });
+          break;
+
+        case 'ADD_MESSAGE':
+          models.Thread.findById(parsed.threadId, (err2, thread) => {
+            if (!err2 && thread) {
+              models.Message.upsert(parsed.message, (err3, message) => {
+                if (!err3 && message) {
+                  clients.filter(client =>
+                  thread.users.indexOf(client.id.toString()) > -1)
+                  .map(client => {
+                    client.ws.send(JSON.stringify({
+                      type: 'ADD_MESSAGE_TO_THREAD',
+                      threadId: parsed.threadId,
+                      message: message,
+                    }));
+                  });
+                }
               });
             }
           });
